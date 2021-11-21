@@ -3,6 +3,7 @@ package com.example.android_game;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -32,12 +33,18 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private ImageView boule;
 
     private float xx;
-    private float yy;
+    private float yy = -5;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
+    private final ScheduledExecutorService retour = Executors.newScheduledThreadPool(1);
 
     private boolean game = true;
+
+
+    //Rect
+
+    private Rect rc1;
+    private Rect rc2;
 
 
     @Override
@@ -60,6 +67,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         //INIT THREAD
         scheduler.scheduleAtFixedRate(runnable, 30, 30, TimeUnit.MILLISECONDS);
 
+        //INIT RECT
+        rc1 = new Rect();
+        rc2 = new Rect();
+
         int x;
         int y;
         for (int i = 0; i < 15; i++) {
@@ -73,6 +84,22 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         this.init_boule();
     }
 
+    private Runnable retour_boule = new Runnable() {
+        @Override
+        public void run() {
+            boule.setY(boule.getY() - yy);
+            boolean touche_bande_noir = false;
+            touche_bande_noir = hitCheck_bande_noir(bande_noir);
+            Log.e("TEst", "  " + boule.getX() + " + " + boule.getY());
+            if (touche_bande_noir == true) {
+                Log.e("GIOOOOOMMMMMMEEEE", "GIOOOOOMMMMMMEEEE");
+                scheduler.scheduleAtFixedRate(runnable, 30, 30, TimeUnit.MILLISECONDS);
+                scheduler.execute(runnable);
+                retour.shutdown();
+            }
+        }
+    };
+
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -85,15 +112,22 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             for (ImageView brique_for : list_brique) {
                 boolean hit_brique_boule;
 
-                hit_brique_boule = hitCheck(brique_for);
+                hit_brique_boule = hitCheck_brique(brique_for);
 
                 if (hit_brique_boule == true) {
+
+
+                    boule.setY(boule.getY() + 50);
+
+                    retour.scheduleAtFixedRate(retour_boule, 30, 30, TimeUnit.MILLISECONDS);
+                    retour.execute(retour_boule);
 
                     list_brique.remove(brique_for);
                     fenetrePrincipale.removeView(brique_for);
 
                     Log.e("co balles", "  " + boule.getX() + " + " + boule.getY());
                     Log.e("co de la brique", "  " + brique_for.getX() + " + " + brique_for.getY());
+                    scheduler.shutdown();
 
                 }
 
@@ -163,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         list_brique.add(brique);
     }
 
-    public boolean hitCheck(ImageView b) {
+    public boolean hitCheck_brique(ImageView b) {
 
 
         int x1 = (int) b.getX();
@@ -182,23 +216,71 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         int bottom2 = y2 + height2;
 
         // Check if top-left point is in box
-        if (x2 >= x1 && x2 <= right1 && y2 >= y2 && y2 <= bottom1){
-            return true;
-        }else{
-            if (right2 >= x1 && right2 <= right1 && bottom2 >= y2 && bottom2 <= bottom1){
-                return true;
-            }else{
-                this.yy = -5;
-                return false;
 
-            }
+        boolean isValid = false;
+        if (right2 >= x1 && right2 <= right1 && bottom2 >= y2 && bottom2 <= bottom1) {
+
+            isValid = true;
         }
+        if (right2 >= x1 && right2 <= right1 && bottom2 >= y2 && bottom2 <= bottom1) {
+
+            isValid = true;
+        }
+
+
         // Check if bottom-right point is in box
 
+        return isValid;
+    }
+
+    public boolean hitCheck_bande_noir(ImageView b) {
+
+/*
+        int x1 = (int) b.getX();
+        int width1 = b.getWidth();
+        int x2 = (int) boule.getX();
+        int width2 = boule.getWidth();
+        int y1 = (int) b.getY();
+        int height1 = b.getWidth();
+        int y2 = (int) boule.getY();
+        int height2 = boule.getHeight();
 
 
+        int right1 = x1 + width1;
+        int right2 = x2 + width2;
+        int bottom1 = y1 + height1;
+        int bottom2 = y2 + height2;
 
+        // Check if top-left point is in box
 
+        boolean isValid = false;
+        if (!(right2 >= x1 && right2 <= right1 && bottom2 >= y2 && bottom2 <= bottom1)) {
+
+            isValid = true;
+        }
+
+*/
+        boolean isValid = false;
+
+        Log.e("Co de rc1  ", "left : " + rc1.left + " right  : " + rc1.right + " haut : " + rc1.top + " bas : " + rc1.bottom);
+        Log.e("Co de rc2  ", "left : " + rc2.left + " right : " + rc2.right + " haut : " + rc2.top + " bas : " + rc2.bottom);
+
+        b.getDrawingRect(rc1);
+
+        boule.getDrawingRect(rc2);
+
+        Log.e("Co de rc1  ", "left : " + rc1.left + " right  : " + rc1.right + " haut : " + rc1.top + " bas : " + rc1.bottom);
+        Log.e("Co de rc2  ", "left : " + rc2.left + " right : " + rc2.right + " haut : " + rc2.top + " bas : " + rc2.bottom);
+   /*
+
+        if(Rect.intersects(rc1, rc2)){
+                isValid = true;
+        }
+
+*/
+        // Check if bottom-right point is in box
+
+        return isValid;
     }
 
     @Override
